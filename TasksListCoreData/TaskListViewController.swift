@@ -79,6 +79,20 @@ class TaskListViewController: UITableViewController {
         present(alert, animated: true)
     }
     
+    private func showEditTaskAlert(with title: String, and message: String, indexPath: IndexPath) {
+         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+         let editAction = UIAlertAction(title: "Edit", style: .default) { _ in
+             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
+             self.edit(task, indexPath)
+         }
+         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+         alert.addTextField()
+         alert.textFields?.first?.text = taskList[indexPath.row].name
+         alert.addAction(editAction)
+         alert.addAction(cancelAction)
+         present(alert, animated: true)
+     }
+    
     private func save(_ taskName: String) {
         guard let task = StorageManager.shared.getTask() else { return }
         task.name = taskName
@@ -95,6 +109,14 @@ class TaskListViewController: UITableViewController {
             }
         }
     }
+    
+    private func edit(_ taskName: String, _ indexPath: IndexPath) {
+        StorageManager.shared.deleteTask(taskList[indexPath.row])
+        guard let task = StorageManager.shared.saveContext(taskName) else { return }
+        taskList[indexPath.row] = task
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
+    
 }
 
 // MARK: - Table View Data Source
@@ -110,5 +132,18 @@ extension TaskListViewController {
         content.text = task.name
         cell.contentConfiguration = content
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+            if editingStyle == .delete {
+                StorageManager.shared.deleteTask(taskList[indexPath.row])
+                taskList.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+            } else { return }
+        }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        showEditTaskAlert(with: "Edit Task", and: "You may edit curent task...", indexPath: indexPath)
     }
 }

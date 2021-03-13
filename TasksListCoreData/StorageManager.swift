@@ -25,8 +25,14 @@ class StorageManager {
     }()
 
     // MARK: - Core Data Saving support
-    func saveContext() {
+    func saveContext(_ taskName: String? = nil) -> Task? {
         let context = persistentContainer.viewContext
+        
+        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return nil }
+        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return nil }
+        
+        task.name = taskName
+        
         if context.hasChanges {
             do {
                 try context.save()
@@ -35,6 +41,8 @@ class StorageManager {
                 fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
             }
         }
+        
+        return task
     }
     
     func getTask() -> Task? {
@@ -42,6 +50,20 @@ class StorageManager {
         guard let task = NSManagedObject(entity: entityDescription, insertInto: persistentContainer.viewContext) as? Task else { return nil }
 
         return task
+    }
+    
+    func deleteTask(_ task: Task) {
+        let context = persistentContainer.viewContext
+        context.delete(task)
+        
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                let nserror = error as NSError
+                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+            }
+        }
     }
     
     func fetchRequest() -> NSFetchRequest<Task> {
